@@ -306,40 +306,57 @@ function isGoogleSheetsConfigured(): boolean {
 
 /**
  * Fetch all employees from Google Sheets (with caching)
- * Falls back to demo data if Google Sheets is not configured
+ * Falls back to demo data if Google Sheets is not configured or on any error
  */
 export async function getEmployees(): Promise<Employee[]> {
-  // Return demo data if Google Sheets is not configured
-  if (!isGoogleSheetsConfigured()) {
-    console.log('[v0] Using demo employee data (Google Sheets not configured)')
+  try {
+    // Check if Google Sheets is configured
+    const sheetId = process.env.GOOGLE_SHEETS_ID
+    const jsonCreds = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
+    const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
+    const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
+    
+    console.log('[v0] getEmployees called')
+    console.log('[v0] GOOGLE_SHEETS_ID:', sheetId ? `"${sheetId.substring(0, 10)}..."` : 'undefined')
+    console.log('[v0] GOOGLE_SERVICE_ACCOUNT_JSON:', jsonCreds ? `set (${jsonCreds.length} chars)` : 'undefined')
+    
+    const hasCredentials = jsonCreds || (email && privateKey)
+    
+    if (!sheetId || !hasCredentials) {
+      console.log('[v0] Google Sheets not configured - using demo data')
+      return DEMO_EMPLOYEES
+    }
+
+    // Check cache
+    if (employeeCache && Date.now() - employeeCache.timestamp < CACHE_TTL_MS) {
+      console.log('[v0] Returning cached employee data')
+      return employeeCache.data
+    }
+
+    console.log('[v0] Fetching fresh data from Google Sheets...')
+    const credentials = getCredentials()
+    const accessToken = await getAccessToken(credentials)
+    const rows = await fetchSheetData(sheetId, accessToken)
+
+    console.log('[v0] Got', rows.length, 'rows from Google Sheets')
+    
+    const employees = rows
+      .map(normalizeEmployee)
+      .filter((e): e is Employee => e !== null)
+
+    console.log('[v0] Parsed', employees.length, 'valid employees')
+
+    // Update cache
+    employeeCache = {
+      data: employees,
+      timestamp: Date.now(),
+    }
+
+    return employees
+  } catch (error) {
+    console.error('[v0] Error fetching employees, using demo data:', error)
     return DEMO_EMPLOYEES
   }
-
-  // Check cache
-  if (employeeCache && Date.now() - employeeCache.timestamp < CACHE_TTL_MS) {
-    return employeeCache.data
-  }
-
-  const sheetId = process.env.GOOGLE_SHEETS_ID
-  if (!sheetId) {
-    return DEMO_EMPLOYEES
-  }
-
-  const credentials = getCredentials()
-  const accessToken = await getAccessToken(credentials)
-  const rows = await fetchSheetData(sheetId, accessToken)
-
-  const employees = rows
-    .map(normalizeEmployee)
-    .filter((e): e is Employee => e !== null)
-
-  // Update cache
-  employeeCache = {
-    data: employees,
-    timestamp: Date.now(),
-  }
-
-  return employees
 }
 
 /**
