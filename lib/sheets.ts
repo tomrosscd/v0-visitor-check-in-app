@@ -291,13 +291,7 @@ function isGoogleSheetsConfigured(): boolean {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
   const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
   
-  console.log('[v0] ENV CHECK - GOOGLE_SHEETS_ID:', sheetId ? 'SET' : 'NOT SET')
-  console.log('[v0] ENV CHECK - GOOGLE_SERVICE_ACCOUNT_JSON:', jsonCreds ? `SET (length: ${jsonCreds.length})` : 'NOT SET')
-  
-  const configured = !!(sheetId && (jsonCreds || (email && privateKey)))
-  console.log('[v0] ENV CHECK - isConfigured:', configured)
-  
-  return configured
+  return !!(sheetId && (jsonCreds || (email && privateKey)))
 }
 
 // =============================================================================
@@ -316,35 +310,24 @@ export async function getEmployees(): Promise<Employee[]> {
     const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
     const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
     
-    console.log('[v0] getEmployees called')
-    console.log('[v0] GOOGLE_SHEETS_ID:', sheetId ? `"${sheetId.substring(0, 10)}..."` : 'undefined')
-    console.log('[v0] GOOGLE_SERVICE_ACCOUNT_JSON:', jsonCreds ? `set (${jsonCreds.length} chars)` : 'undefined')
-    
     const hasCredentials = jsonCreds || (email && privateKey)
     
     if (!sheetId || !hasCredentials) {
-      console.log('[v0] Google Sheets not configured - using demo data')
       return DEMO_EMPLOYEES
     }
 
     // Check cache
     if (employeeCache && Date.now() - employeeCache.timestamp < CACHE_TTL_MS) {
-      console.log('[v0] Returning cached employee data')
       return employeeCache.data
     }
 
-    console.log('[v0] Fetching fresh data from Google Sheets...')
     const credentials = getCredentials()
     const accessToken = await getAccessToken(credentials)
     const rows = await fetchSheetData(sheetId, accessToken)
-
-    console.log('[v0] Got', rows.length, 'rows from Google Sheets')
     
     const employees = rows
       .map(normalizeEmployee)
       .filter((e): e is Employee => e !== null)
-
-    console.log('[v0] Parsed', employees.length, 'valid employees')
 
     // Update cache
     employeeCache = {
@@ -354,7 +337,7 @@ export async function getEmployees(): Promise<Employee[]> {
 
     return employees
   } catch (error) {
-    console.error('[v0] Error fetching employees, using demo data:', error)
+    console.error('Error fetching employees from Google Sheets:', error)
     return DEMO_EMPLOYEES
   }
 }
