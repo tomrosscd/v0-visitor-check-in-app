@@ -131,29 +131,9 @@ export function CheckinPageContent() {
     )
   }
 
-  // Error state
-  if (hasError || !employees) {
-    return (
-      <div className={cn(
-        'min-h-screen flex items-center justify-center bg-background p-4',
-        isQrMode && 'bg-muted/30'
-      )}>
-        <div className="w-full max-w-md">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Unable to load the check-in form. Please try refreshing the page or contact the front desk.
-              {OFFICE_PHONE && (
-                <span className="block mt-2">
-                  Call: {OFFICE_PHONE}
-                </span>
-              )}
-            </AlertDescription>
-          </Alert>
-        </div>
-      </div>
-    )
-  }
+  // If employees failed to load, continue with empty array (form will still work, just no host dropdown)
+  const employeeList = employees || []
+  const showEmployeeWarning = (employeesError || !employees) && !isLoading
 
   return (
     <main className={cn(
@@ -178,6 +158,16 @@ export function CheckinPageContent() {
           </div>
         </div>
 
+        {/* Employee list warning */}
+        {showEmployeeWarning && (
+          <Alert className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Unable to load the host list. You can still check in and we&apos;ll notify the front desk.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Host resolution warning */}
         {hostParam && hostResolution?.status === 'not_found' && (
           <Alert className="mb-4">
@@ -201,7 +191,7 @@ export function CheckinPageContent() {
         <CheckinForm
           mode={mode}
           source={source}
-          employees={employees}
+          employees={employeeList}
           initialHost={initialHost}
           initialVisitor={visitorParam}
           initialCompany={companyParam}
