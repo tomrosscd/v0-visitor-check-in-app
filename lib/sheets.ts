@@ -291,7 +291,13 @@ function isGoogleSheetsConfigured(): boolean {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
   const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
   
-  return !!(sheetId && (jsonCreds || (email && privateKey)))
+  console.log('[v0] ENV CHECK - GOOGLE_SHEETS_ID:', sheetId ? 'SET' : 'NOT SET')
+  console.log('[v0] ENV CHECK - GOOGLE_SERVICE_ACCOUNT_JSON:', jsonCreds ? `SET (length: ${jsonCreds.length})` : 'NOT SET')
+  
+  const configured = !!(sheetId && (jsonCreds || (email && privateKey)))
+  console.log('[v0] ENV CHECK - isConfigured:', configured)
+  
+  return configured
 }
 
 // =============================================================================
