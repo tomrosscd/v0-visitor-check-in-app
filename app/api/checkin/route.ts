@@ -26,7 +26,7 @@
 import { NextResponse } from 'next/server'
 import { CheckinRequestSchema, CheckinResponse } from '@/lib/validation'
 import { resolveHostById } from '@/lib/host-resolution'
-import { postCheckinNotification } from '@/lib/slack'
+import { postCheckinNotification, isSlackConfigured } from '@/lib/slack'
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit'
 
 export async function POST(request: Request) {
@@ -76,16 +76,20 @@ export async function POST(request: Request) {
       // Don't log PII - just note resolution status
     }
 
-    // Post to Slack
-    await postCheckinNotification({
-      visitor: data.visitor,
-      company: data.company,
-      notes: data.notes,
-      host: resolvedHost,
-      mode: data.mode,
-      source: data.source,
-      meeting: data.meeting,
-    })
+    // Post to Slack (skip in demo mode if not configured)
+    if (isSlackConfigured()) {
+      await postCheckinNotification({
+        visitor: data.visitor,
+        company: data.company,
+        notes: data.notes,
+        host: resolvedHost,
+        mode: data.mode,
+        source: data.source,
+        meeting: data.meeting,
+      })
+    } else {
+      console.log('[v0] Slack not configured - skipping notification (demo mode)')
+    }
 
     // Build response (no PII or secrets)
     const response: CheckinResponse = {

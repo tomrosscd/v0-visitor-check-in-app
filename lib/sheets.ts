@@ -234,13 +234,79 @@ function normalizeEmployee(row: SheetRow): Employee | null {
 }
 
 // =============================================================================
+// Demo Data (used when Google Sheets is not configured)
+// =============================================================================
+
+const DEMO_EMPLOYEES: Employee[] = [
+  {
+    employee_id: 'emp_001',
+    display_name: 'Tom Ross',
+    slack_user_id: 'U123ABC',
+    email: 'tom@company.com',
+    team: 'Engineering',
+    host_slug: 'tom-ross',
+    is_active: true,
+  },
+  {
+    employee_id: 'emp_002',
+    display_name: 'Jane Smith',
+    slack_user_id: 'U456DEF',
+    email: 'jane@company.com',
+    team: 'Sales',
+    host_slug: 'jane-smith',
+    is_active: true,
+  },
+  {
+    employee_id: 'emp_003',
+    display_name: 'Alex Johnson',
+    slack_user_id: 'U789GHI',
+    email: 'alex@company.com',
+    team: 'Product',
+    host_slug: 'alex-johnson',
+    is_active: true,
+  },
+  {
+    employee_id: 'emp_004',
+    display_name: 'Sarah Chen',
+    slack_user_id: 'U012JKL',
+    email: 'sarah@company.com',
+    team: 'Design',
+    host_slug: 'sarah-chen',
+    is_active: true,
+  },
+  {
+    employee_id: 'emp_005',
+    display_name: 'Michael Davis',
+    slack_user_id: 'U345MNO',
+    email: 'michael@company.com',
+    team: 'Engineering',
+    host_slug: 'michael-davis',
+    is_active: true,
+  },
+]
+
+function isGoogleSheetsConfigured(): boolean {
+  return !!(process.env.GOOGLE_SHEETS_ID && (
+    process.env.GOOGLE_SERVICE_ACCOUNT_JSON ||
+    (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY)
+  ))
+}
+
+// =============================================================================
 // Public API
 // =============================================================================
 
 /**
  * Fetch all employees from Google Sheets (with caching)
+ * Falls back to demo data if Google Sheets is not configured
  */
 export async function getEmployees(): Promise<Employee[]> {
+  // Return demo data if Google Sheets is not configured
+  if (!isGoogleSheetsConfigured()) {
+    console.log('[v0] Using demo employee data (Google Sheets not configured)')
+    return DEMO_EMPLOYEES
+  }
+
   // Check cache
   if (employeeCache && Date.now() - employeeCache.timestamp < CACHE_TTL_MS) {
     return employeeCache.data
@@ -248,7 +314,7 @@ export async function getEmployees(): Promise<Employee[]> {
 
   const sheetId = process.env.GOOGLE_SHEETS_ID
   if (!sheetId) {
-    throw new Error('GOOGLE_SHEETS_ID environment variable is not set')
+    return DEMO_EMPLOYEES
   }
 
   const credentials = getCredentials()
