@@ -75,19 +75,19 @@ export function HostCombobox({
           aria-label="Select host"
           disabled={disabled}
           className={cn(
-            'w-full justify-between font-normal',
-            isQrMode && 'h-14 text-lg',
+            'h-12 w-full justify-between rounded-none border-0 border-b border-input bg-transparent px-0 py-3 text-left text-sm font-normal normal-case tracking-normal shadow-none hover:translate-y-0 hover:border-primary hover:bg-transparent hover:text-foreground',
+            isQrMode && 'h-14 text-base',
             !value && 'text-muted-foreground',
             className
           )}
         >
           {value === 'NOT_SURE' ? (
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2 text-left">
               <HelpCircle className="h-4 w-4" />
               Not sure who I&apos;m meeting
             </span>
           ) : displayValue ? (
-            <span className="flex items-center gap-2 truncate">
+            <span className="flex items-center gap-2 truncate text-left">
               <User className="h-4 w-4 shrink-0" />
               {displayValue}
             </span>

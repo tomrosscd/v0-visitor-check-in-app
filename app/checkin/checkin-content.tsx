@@ -10,7 +10,7 @@
 import * as React from 'react'
 import { useSearchParams } from 'next/navigation'
 import useSWR from 'swr'
-import { Building2, Loader2, AlertCircle } from 'lucide-react'
+import { Loader2, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CheckinForm } from '@/components/checkin/checkin-form'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -119,13 +119,13 @@ export function CheckinPageContent() {
   // Loading state
   if (isLoading) {
     return (
-      <div className={cn(
-        'min-h-screen flex items-center justify-center bg-background',
-        isQrMode && 'bg-muted/30'
-      )}>
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className={cn('animate-spin text-muted-foreground', isQrMode ? 'h-12 w-12' : 'h-8 w-8')} />
-          <p className={cn('text-muted-foreground', isQrMode && 'text-xl')}>Loading...</p>
+      <div className="brand-page flex min-h-screen items-center justify-center px-4">
+        <div className="brand-panel flex max-w-md flex-col items-center gap-4 rounded-[2rem] px-8 py-12 text-center">
+          <Loader2 className={cn('animate-spin text-primary', isQrMode ? 'h-12 w-12' : 'h-8 w-8')} />
+          <p className="brand-kicker">Preparing your check-in</p>
+          <p className="brand-subtitle">
+            Loading the latest host list and visitor flow.
+          </p>
         </div>
       </div>
     )
@@ -134,11 +134,8 @@ export function CheckinPageContent() {
   // Error state
   if (hasError || !employees) {
     return (
-      <div className={cn(
-        'min-h-screen flex items-center justify-center bg-background p-4',
-        isQrMode && 'bg-muted/30'
-      )}>
-        <div className="w-full max-w-md">
+      <div className="brand-page flex min-h-screen items-center justify-center p-4">
+        <div className="w-full max-w-xl">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
@@ -156,31 +153,20 @@ export function CheckinPageContent() {
   }
 
   return (
-    <main className={cn(
-      'min-h-screen bg-background',
-      isQrMode ? 'bg-muted/30 flex items-center justify-center p-4' : 'py-8 px-4'
-    )}>
-      <div className={cn(
-        'w-full mx-auto',
-        isQrMode ? 'max-w-lg' : 'max-w-md'
-      )}>
-        {/* Logo placeholder */}
-        <div className={cn(
-          'flex justify-center mb-6',
-          isQrMode && 'mb-8'
-        )}>
-          <div className={cn(
-            'flex items-center gap-2 text-foreground',
-            isQrMode && 'text-2xl'
-          )}>
-            <Building2 className={cn(isQrMode ? 'h-10 w-10' : 'h-6 w-6')} />
-            <span className="font-semibold">Office Check-in</span>
-          </div>
-        </div>
-
-        {/* Host resolution warning */}
+    <main
+      className={cn(
+        'brand-page',
+        isQrMode ? 'flex items-center justify-center p-4' : 'px-4 py-8 sm:px-6 sm:py-12',
+      )}
+    >
+      <div
+        className={cn(
+          'mx-auto w-full',
+          isQrMode ? 'max-w-3xl' : 'max-w-2xl',
+        )}
+      >
         {hostParam && hostResolution?.status === 'not_found' && (
-          <Alert className="mb-4">
+          <Alert className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               We couldn&apos;t find that host. Please select from the list below.
@@ -189,7 +175,7 @@ export function CheckinPageContent() {
         )}
 
         {hostParam && hostResolution?.status === 'multiple' && (
-          <Alert className="mb-4">
+          <Alert className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               Multiple people match that name. Please select the correct host below.
@@ -197,19 +183,20 @@ export function CheckinPageContent() {
           </Alert>
         )}
 
-        {/* Check-in Form */}
-        <CheckinForm
-          mode={mode}
-          source={source}
-          employees={employees}
-          initialHost={initialHost}
-          initialVisitor={visitorParam}
-          initialCompany={companyParam}
-          initialNotes={notesParam}
-          meeting={meetingParam}
-          hiddenFields={effectiveHiddenFields}
-          officePhone={OFFICE_PHONE}
-        />
+        <section className={cn('brand-panel rounded-[2.25rem] px-6 py-8 sm:px-10 sm:py-12', isQrMode && 'border-2')}>
+          <CheckinForm
+            mode={mode}
+            source={source}
+            employees={employees}
+            initialHost={initialHost}
+            initialVisitor={visitorParam}
+            initialCompany={companyParam}
+            initialNotes={notesParam}
+            meeting={meetingParam}
+            hiddenFields={effectiveHiddenFields}
+            officePhone={OFFICE_PHONE}
+          />
+        </section>
       </div>
     </main>
   )

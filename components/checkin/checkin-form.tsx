@@ -19,7 +19,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { HostCombobox } from './host-combobox'
 import type { PublicEmployee, CheckinMode, CheckinResponse } from '@/lib/validation'
 
@@ -173,46 +172,48 @@ export function CheckinForm({
     }, 100)
   }
 
+  const fieldLabelClassName = 'brand-kicker text-foreground/80'
+
   // Success state
   if (formState === 'success') {
     return (
-      <Card className={cn(isQrMode && 'border-2')}>
-        <CardHeader className={cn('text-center', isQrMode && 'py-12')}>
-          <div className="flex justify-center mb-4">
-            <CheckCircle2 className={cn('text-green-600', isQrMode ? 'h-20 w-20' : 'h-12 w-12')} />
+      <section className="rounded-[2rem] bg-primary px-6 py-10 text-primary-foreground sm:px-10 sm:py-12">
+        <div className={cn('mx-auto max-w-2xl text-center', isQrMode && 'max-w-xl')}>
+          <div className="mb-5 flex justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-primary-foreground/15 bg-primary-foreground/8">
+              <CheckCircle2 className={cn('text-secondary', isQrMode ? 'h-9 w-9' : 'h-8 w-8')} />
+            </div>
           </div>
-          <CardTitle 
+          <h2
             ref={successHeadingRef}
             tabIndex={-1}
-            className={cn('text-green-600', isQrMode && 'text-3xl')}
+            className={cn('brand-title text-primary-foreground', isQrMode && 'text-[clamp(2.5rem,8vw,4.75rem)]')}
           >
-            You&apos;re all checked in!
-          </CardTitle>
-          <CardDescription className={cn(isQrMode && 'text-xl mt-4')}>
+            You&apos;re all checked in.
+          </h2>
+          <p className={cn('mx-auto mt-4 max-w-xl text-sm leading-6 text-primary-foreground/75', isQrMode && 'text-base')}>
             {response?.message || 'Your host has been notified and will be down shortly.'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className={cn('flex flex-col items-center gap-4', isQrMode && 'pb-12')}>
-          <p className={cn('text-muted-foreground text-center', isQrMode && 'text-lg')}>
+          </p>
+          <p className={cn('mx-auto mt-6 max-w-lg text-sm text-primary-foreground/64', isQrMode && 'text-base')}>
             Please take a seat. Someone will be with you in a few minutes.
           </p>
-          
+
           {officePhone && (
-            <p className={cn('text-muted-foreground text-center flex items-center gap-2', isQrMode && 'text-lg')}>
+            <p className={cn('mt-5 flex items-center justify-center gap-2 text-primary-foreground/82', isQrMode && 'text-lg')}>
               <Phone className="h-4 w-4" />
               Need help? Call {officePhone}
             </p>
           )}
 
-          <Button 
+          <Button
             onClick={handleReset}
-            variant="outline"
-            className={cn(isQrMode && 'h-14 text-lg px-8 mt-4')}
+            variant="secondary"
+            className={cn('mt-8', isQrMode && 'h-14 px-8 text-sm')}
           >
             Check in another visitor
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     )
   }
 
@@ -231,39 +232,40 @@ export function CheckinForm({
   }
 
   return (
-    <Card className={cn(isQrMode && 'border-2')}>
-      <CardHeader className={cn(isQrMode && 'py-8')}>
-        <CardTitle className={cn(isQrMode && 'text-2xl text-center')}>
+    <section>
+      <div className={cn('mb-8 text-center', isQrMode && 'mb-10')}>
+        <h1 className={cn('brand-title text-primary', isQrMode && 'text-[clamp(2.25rem,7vw,4rem)]')}>
           Visitor Check-in
-        </CardTitle>
+        </h1>
         {getInstructions() && (
-          <CardDescription className={cn(isQrMode && 'text-lg text-center')}>
+          <p className={cn('mx-auto mt-4 max-w-xl text-sm leading-6 text-muted-foreground', isQrMode && 'text-base')}>
             {getInstructions()}
-          </CardDescription>
+          </p>
         )}
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Honeypot field - hidden from users, visible to bots */}
-          <input
-            type="text"
-            name="website"
-            value={honeypot}
-            onChange={(e) => setHoneypot(e.target.value)}
-            className="absolute -left-[9999px] opacity-0"
-            tabIndex={-1}
-            autoComplete="off"
-            aria-hidden="true"
-          />
+      </div>
 
+      <form onSubmit={handleSubmit} className="space-y-7">
+        {/* Honeypot field - hidden from users, visible to bots */}
+        <input
+          type="text"
+          name="website"
+          value={honeypot}
+          onChange={(e) => setHoneypot(e.target.value)}
+          className="absolute -left-[9999px] opacity-0"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+        />
+
+        <div className={cn('grid gap-6', showVisitor && showCompany && 'sm:grid-cols-2')}>
           {/* Visitor Name */}
           {showVisitor && (
             <div className="space-y-2">
-              <Label 
-                htmlFor="visitor" 
-                className={cn(isQrMode && 'text-base')}
+              <Label
+                htmlFor="visitor"
+                className={cn(fieldLabelClassName, isQrMode && 'text-[11px]')}
               >
-                Your name <span className="text-destructive">*</span>
+                Name <span className="text-destructive">*</span>
               </Label>
               <Input
                 ref={visitorInputRef}
@@ -276,7 +278,7 @@ export function CheckinForm({
                 aria-invalid={!!errors.visitor}
                 aria-describedby={errors.visitor ? 'visitor-error' : undefined}
                 className={cn(
-                  isQrMode && 'h-14 text-lg',
+                  isQrMode && 'h-14 text-base',
                   errors.visitor && 'border-destructive'
                 )}
               />
@@ -291,9 +293,9 @@ export function CheckinForm({
           {/* Company */}
           {showCompany && (
             <div className="space-y-2">
-              <Label 
+              <Label
                 htmlFor="company"
-                className={cn(isQrMode && 'text-base')}
+                className={cn(fieldLabelClassName, isQrMode && 'text-[11px]')}
               >
                 Company <span className="text-muted-foreground">(optional)</span>
               </Label>
@@ -304,79 +306,81 @@ export function CheckinForm({
                 onChange={(e) => setCompany(e.target.value)}
                 placeholder="Your company name"
                 disabled={formState === 'submitting'}
-                className={cn(isQrMode && 'h-14 text-lg')}
+                className={cn(isQrMode && 'h-14 text-base')}
               />
             </div>
           )}
+        </div>
 
-          {/* Host Selection */}
-          {showHost && (
-            <div className="space-y-2">
-              <Label className={cn(isQrMode && 'text-base')}>
-                Who are you here to see?
-                {!isQrMode && <span className="text-muted-foreground"> (optional)</span>}
-              </Label>
-              <HostCombobox
-                employees={employees}
-                value={host}
-                onChange={setHost}
-                disabled={formState === 'submitting'}
-                showNotSure={isQrMode}
-                placeholder={isQrMode ? 'Tap to select...' : 'Search for your host...'}
-                isQrMode={isQrMode}
-              />
-              {errors.host && (
-                <p className="text-sm text-destructive">
-                  {errors.host}
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Hidden host display for personal mode */}
-          {!showHost && initialHost && isPersonalMode && (
-            <div className="space-y-2">
-              <Label className="text-muted-foreground">Visiting</Label>
-              <p className="text-sm">
-                {employees.find(e => e.employee_id === initialHost)?.display_name || 'Your host'}
+        {/* Host Selection */}
+        {showHost && (
+          <div className="space-y-2">
+            <Label className={cn(fieldLabelClassName, isQrMode && 'text-[11px]')}>
+              Who are you here to see?
+              {!isQrMode && <span className="text-muted-foreground"> (optional)</span>}
+            </Label>
+            <HostCombobox
+              employees={employees}
+              value={host}
+              onChange={setHost}
+              disabled={formState === 'submitting'}
+              showNotSure={isQrMode}
+              placeholder={isQrMode ? 'Tap to select...' : 'Search for your host...'}
+              isQrMode={isQrMode}
+            />
+            {errors.host && (
+              <p className="text-sm text-destructive">
+                {errors.host}
               </p>
-            </div>
-          )}
+            )}
+          </div>
+        )}
 
-          {/* Notes */}
-          {showNotes && (
-            <div className="space-y-2">
-              <Label 
-                htmlFor="notes"
-                className={cn(isQrMode && 'text-base')}
-              >
-                Notes <span className="text-muted-foreground">(optional)</span>
-              </Label>
-              <Textarea
-                id="notes"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Any additional information..."
-                disabled={formState === 'submitting'}
-                className={cn(isQrMode && 'text-lg min-h-[100px]')}
-              />
-            </div>
-          )}
+        {/* Hidden host display for personal mode */}
+        {!showHost && initialHost && isPersonalMode && (
+          <div className="rounded-[1.5rem] border border-border/80 bg-muted/40 px-5 py-4">
+            <Label className={fieldLabelClassName}>Visiting</Label>
+            <p className="mt-2 text-sm">
+              {employees.find(e => e.employee_id === initialHost)?.display_name || 'Your host'}
+            </p>
+          </div>
+        )}
+
+        {/* Notes */}
+        {showNotes && (
+          <div className="space-y-2">
+            <Label
+              htmlFor="notes"
+              className={cn(fieldLabelClassName, isQrMode && 'text-[11px]')}
+            >
+              Tell us more <span className="text-muted-foreground">(optional)</span>
+            </Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any additional information..."
+              disabled={formState === 'submitting'}
+              className={cn(isQrMode && 'min-h-[120px] text-base')}
+            />
+          </div>
+        )}
 
           {/* General Error */}
           {errors.general && (
-            <div className="rounded-md bg-destructive/10 p-4">
+            <div className="rounded-[1.25rem] bg-destructive/10 p-4">
               <p className="text-sm text-destructive">{errors.general}</p>
             </div>
           )}
 
           {/* Submit Button */}
+        <div className="pt-1">
           <Button
             type="submit"
             disabled={formState === 'submitting'}
             className={cn(
               'w-full',
-              isQrMode && 'h-16 text-xl'
+              isQrMode && 'h-16 text-xs'
             )}
           >
             {formState === 'submitting' ? (
@@ -385,19 +389,19 @@ export function CheckinForm({
                 Checking in...
               </>
             ) : (
-              "I'm here"
+              'Submit'
             )}
           </Button>
+        </div>
 
-          {/* Fallback contact in QR mode */}
-          {isQrMode && officePhone && (
-            <p className="text-center text-muted-foreground flex items-center justify-center gap-2">
-              <Phone className="h-4 w-4" />
-              Trouble? Call us: {officePhone}
-            </p>
-          )}
-        </form>
-      </CardContent>
-    </Card>
+        {/* Fallback contact in QR mode */}
+        {officePhone && (
+          <p className="flex items-center justify-center gap-2 text-center text-muted-foreground">
+            <Phone className="h-4 w-4" />
+            Need help? Call {officePhone}
+          </p>
+        )}
+      </form>
+    </section>
   )
 }
