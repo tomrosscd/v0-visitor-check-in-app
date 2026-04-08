@@ -28,6 +28,7 @@ import { CheckinRequestSchema, CheckinResponse } from '@/lib/validation'
 import { resolveHostById } from '@/lib/host-resolution'
 import { postCheckinNotification, isSlackConfigured } from '@/lib/slack'
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit'
+import { createVisit, updateVisitSlackDelivery } from '@/lib/directory'
 
 export async function POST(request: Request) {
   try {
@@ -76,9 +77,19 @@ export async function POST(request: Request) {
       // Don't log PII - just note resolution status
     }
 
+    const visit = await createVisit({
+      visitor_name: data.visitor,
+      visitor_company: data.company,
+      notes: data.notes,
+      source: data.source,
+      mode: data.mode,
+      host_id: resolvedHost?.employee_id,
+      host_name: resolvedHost?.display_name || null,
+    })
+
     // Post to Slack (skip in demo mode if not configured)
     if (isSlackConfigured()) {
-      await postCheckinNotification({
+      const slackResult = await postCheckinNotification({
         visitor: data.visitor,
         company: data.company,
         notes: data.notes,
@@ -86,12 +97,22 @@ export async function POST(request: Request) {
         mode: data.mode,
         source: data.source,
         meeting: data.meeting,
+        visitId: visit?.id,
       })
+
+      if (visit?.id && slackResult?.channel && slackResult?.ts) {
+        await updateVisitSlackDelivery({
+          visitId: visit.id,
+          slack_channel_id: slackResult.channel,
+          slack_message_ts: slackResult.ts,
+        })
+      }
     } else {
       console.log('[v0] Slack not configured - skipping notification (demo mode)')
     }
 
     // Build response (no PII or secrets)
+
     const response: CheckinResponse = {
       success: true,
       message: resolvedHost 
@@ -99,6 +120,10 @@ export async function POST(request: Request) {
         : 'Thanks! Someone will be down to help you shortly.',
       hostResolved: !!resolvedHost,
       timestamp: new Date().toISOString(),
+      visitId: visit?.id,
+      hostName: resolvedHost?.display_name || null,
+      hostMessage: visit?.host_message || null,
+      status: visit?.status || (resolvedHost ? 'notified' : 'triage'),
     }
 
     // Optional: Log analytics-safe data (no PII)

@@ -10,11 +10,11 @@
  */
 
 import { NextResponse } from 'next/server'
-import { getPublicEmployees } from '@/lib/sheets'
+import { getHosts } from '@/lib/directory'
 
 export async function GET() {
   try {
-    const employees = await getPublicEmployees()
+    const employees = await getHosts()
     
     return NextResponse.json(employees, {
       headers: {

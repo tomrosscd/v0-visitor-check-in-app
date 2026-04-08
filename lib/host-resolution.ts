@@ -10,7 +10,7 @@
  * If multiple matches are found, returns them for user selection.
  */
 
-import { getActiveEmployees } from './sheets'
+import { getFullEmployees } from './directory'
 import { Employee, HostResolutionResult, ResolvedHost, PublicEmployee } from './validation'
 
 function employeeToResolvedHost(employee: Employee): ResolvedHost {
@@ -50,7 +50,7 @@ export async function resolveHost(hostParam: string): Promise<HostResolutionResu
 
   const query = hostParam.trim()
   const queryLower = query.toLowerCase()
-  const employees = await getActiveEmployees()
+  const employees = await getFullEmployees()
 
   // 1. Exact match on employee_id
   const byId = employees.find(e => e.employee_id === query)
@@ -104,7 +104,7 @@ export async function resolveHost(hostParam: string): Promise<HostResolutionResu
  * Resolve host by employee_id (used when user selects from combobox)
  */
 export async function resolveHostById(employeeId: string): Promise<ResolvedHost | null> {
-  const employees = await getActiveEmployees()
+  const employees = await getFullEmployees()
   const employee = employees.find(e => e.employee_id === employeeId)
   
   if (!employee) {
@@ -118,7 +118,7 @@ export async function resolveHostById(employeeId: string): Promise<ResolvedHost 
  * Search employees for combobox
  */
 export async function searchEmployees(query: string): Promise<PublicEmployee[]> {
-  const employees = await getActiveEmployees()
+  const employees = await getFullEmployees()
   
   if (!query || query.trim() === '') {
     return employees.map(employeeToPublic)

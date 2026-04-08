@@ -78,6 +78,22 @@ export function CheckinPageContent() {
     return null
   }, [hostResolution])
 
+  const initialHostProfile = React.useMemo(() => {
+    if (!employees) {
+      return null
+    }
+
+    if (initialHost) {
+      return employees.find((employee) => employee.employee_id === initialHost) || null
+    }
+
+    if (hostParam) {
+      return employees.find((employee) => employee.host_slug === hostParam) || null
+    }
+
+    return null
+  }, [employees, hostParam, initialHost])
+
   // Check if host should be shown (not resolved or multiple matches)
   const shouldShowHostPicker = React.useMemo(() => {
     // Always show in QR mode
@@ -189,6 +205,7 @@ export function CheckinPageContent() {
             source={source}
             employees={employees}
             initialHost={initialHost}
+            initialHostProfile={initialHostProfile}
             initialVisitor={visitorParam}
             initialCompany={companyParam}
             initialNotes={notesParam}

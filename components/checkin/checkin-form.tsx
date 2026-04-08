@@ -27,6 +27,7 @@ interface CheckinFormProps {
   source: string
   employees: PublicEmployee[]
   initialHost: string | null
+  initialHostProfile: PublicEmployee | null
   initialVisitor: string
   initialCompany: string
   initialNotes: string
@@ -48,6 +49,7 @@ export function CheckinForm({
   source,
   employees,
   initialHost,
+  initialHostProfile,
   initialVisitor,
   initialCompany,
   initialNotes,
@@ -58,6 +60,8 @@ export function CheckinForm({
   const [formState, setFormState] = React.useState<FormState>('ready')
   const [errors, setErrors] = React.useState<FormErrors>({})
   const [response, setResponse] = React.useState<CheckinResponse | null>(null)
+  const [visitStatus, setVisitStatus] = React.useState<string | null>(null)
+  const [hostMessage, setHostMessage] = React.useState<string | null>(null)
 
   // Form values
   const [visitor, setVisitor] = React.useState(initialVisitor)
@@ -91,6 +95,26 @@ export function CheckinForm({
       successHeadingRef.current.focus()
     }
   }, [formState])
+
+  React.useEffect(() => {
+    if (formState !== 'success' || !response?.visitId) {
+      return
+    }
+
+    const intervalId = window.setInterval(async () => {
+      const res = await fetch(`/api/visit-status/${response.visitId}`)
+
+      if (!res.ok) {
+        return
+      }
+
+      const data = await res.json()
+      setVisitStatus(data.status || null)
+      setHostMessage(data.host_message || null)
+    }, 5000)
+
+    return () => window.clearInterval(intervalId)
+  }, [formState, response?.visitId])
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
@@ -148,6 +172,8 @@ export function CheckinForm({
 
       const data: CheckinResponse = await res.json()
       setResponse(data)
+      setVisitStatus(data.status || null)
+      setHostMessage(data.hostMessage || null)
       setFormState('success')
     } catch (error) {
       setErrors({
@@ -165,6 +191,8 @@ export function CheckinForm({
     setFormState('ready')
     setErrors({})
     setResponse(null)
+    setVisitStatus(null)
+    setHostMessage(null)
 
     // Re-focus visitor input
     setTimeout(() => {
@@ -173,6 +201,22 @@ export function CheckinForm({
   }
 
   const fieldLabelClassName = 'brand-kicker text-foreground/80'
+  const showNotSureOption = true
+
+  const statusCopy = (() => {
+    switch (visitStatus) {
+      case 'down_in_2':
+        return 'Your host will be down in about 2 minutes.'
+      case 'down_in_5':
+        return 'Your host will be down in about 5 minutes.'
+      case 'needs_backup':
+        return 'Office support has been asked to collect you.'
+      case 'triage':
+        return 'The office team has been notified and will help you shortly.'
+      default:
+        return null
+    }
+  })()
 
   // Success state
   if (formState === 'success') {
@@ -194,6 +238,16 @@ export function CheckinForm({
           <p className={cn('mx-auto mt-4 max-w-xl text-sm leading-6 text-primary-foreground/75', isQrMode && 'text-base')}>
             {response?.message || 'Your host has been notified and will be down shortly.'}
           </p>
+          {statusCopy && (
+            <p className="mx-auto mt-4 max-w-lg text-sm text-primary-foreground/72">
+              {statusCopy}
+            </p>
+          )}
+          {hostMessage && (
+            <div className="mx-auto mt-5 max-w-lg rounded-[1.25rem] border border-primary-foreground/15 bg-primary-foreground/8 px-4 py-3 text-sm text-primary-foreground/82">
+              {hostMessage}
+            </div>
+          )}
           <p className={cn('mx-auto mt-6 max-w-lg text-sm text-primary-foreground/64', isQrMode && 'text-base')}>
             Please take a seat. Someone will be with you in a few minutes.
           </p>
@@ -317,14 +371,14 @@ export function CheckinForm({
           <div className="space-y-2">
             <Label className={cn(fieldLabelClassName, isQrMode && 'text-[11px]')}>
               Who are you here to see?
-              {!isQrMode && <span className="text-muted-foreground"> (optional)</span>}
+              <span className="text-muted-foreground"> (optional)</span>
             </Label>
             <HostCombobox
               employees={employees}
               value={host}
               onChange={setHost}
               disabled={formState === 'submitting'}
-              showNotSure={isQrMode}
+              showNotSure={showNotSureOption}
               placeholder={isQrMode ? 'Tap to select...' : 'Search for your host...'}
               isQrMode={isQrMode}
             />
@@ -342,6 +396,24 @@ export function CheckinForm({
             <Label className={fieldLabelClassName}>Visiting</Label>
             <p className="mt-2 text-sm">
               {employees.find(e => e.employee_id === initialHost)?.display_name || 'Your host'}
+            </p>
+          </div>
+        )}
+
+        {initialHostProfile?.arrival_instructions && (
+          <div className="rounded-[1.5rem] border border-border/80 bg-muted/40 px-5 py-4">
+            <Label className={fieldLabelClassName}>Arrival note</Label>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {initialHostProfile.arrival_instructions}
+            </p>
+          </div>
+        )}
+
+        {initialHostProfile?.parking_instructions && (
+          <div className="rounded-[1.5rem] border border-border/80 bg-muted/40 px-5 py-4">
+            <Label className={fieldLabelClassName}>Parking</Label>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {initialHostProfile.parking_instructions}
             </p>
           </div>
         )}

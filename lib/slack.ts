@@ -11,6 +11,8 @@
  * - SLACK_CHANNEL: Channel to post to (default: #melbourne-office)
  */
 
+import { createHmac, timingSafeEqual } from 'crypto'
+
 import { CheckinMode, ResolvedHost } from './validation'
 
 // =============================================================================
@@ -33,6 +35,17 @@ interface SlackBlock {
     type: string
     text: string
   }>
+  elements?: Array<{
+    type: string
+    text?: {
+      type: string
+      text: string
+      emoji?: boolean
+    }
+    action_id?: string
+    value?: string
+    style?: string
+  }>
 }
 
 interface CheckinNotificationData {
@@ -43,6 +56,13 @@ interface CheckinNotificationData {
   mode: CheckinMode
   source: string
   meeting?: string // Phase 2: meeting token
+  visitId?: string
+}
+
+interface SlackPostResult {
+  ok: boolean
+  channel?: string
+  ts?: string
 }
 
 // =============================================================================
@@ -170,6 +190,45 @@ function formatSlackMessage(data: CheckinNotificationData): SlackMessage {
     })
   }
 
+  if (data.visitId) {
+    blocks.push({
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          text: {
+            type: 'plain_text',
+            text: 'Down in 2 min',
+            emoji: true,
+          },
+          action_id: 'visit_down_in_2',
+          value: data.visitId,
+          style: 'primary',
+        },
+        {
+          type: 'button',
+          text: {
+            type: 'plain_text',
+            text: 'Down in 5 min',
+            emoji: true,
+          },
+          action_id: 'visit_down_in_5',
+          value: data.visitId,
+        },
+        {
+          type: 'button',
+          text: {
+            type: 'plain_text',
+            text: 'Need backup',
+            emoji: true,
+          },
+          action_id: 'visit_need_backup',
+          value: data.visitId,
+        },
+      ],
+    })
+  }
+
   return {
     text: plainText,
     blocks,
@@ -195,7 +254,7 @@ async function postViaWebhook(webhookUrl: string, message: SlackMessage): Promis
   }
 }
 
-async function postViaBotToken(token: string, channel: string, message: SlackMessage): Promise<void> {
+async function postViaBotToken(token: string, channel: string, message: SlackMessage): Promise<SlackPostResult> {
   const response = await fetch('https://slack.com/api/chat.postMessage', {
     method: 'POST',
     headers: {
@@ -217,6 +276,66 @@ async function postViaBotToken(token: string, channel: string, message: SlackMes
   if (!data.ok) {
     throw new Error(`Slack API error: ${data.error}`)
   }
+
+  return {
+    ok: true,
+    channel: data.channel,
+    ts: data.ts,
+  }
+}
+
+async function openDirectMessageChannel(token: string, userId: string): Promise<string | null> {
+  const response = await fetch('https://slack.com/api/conversations.open', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      users: userId,
+    }),
+  })
+
+  if (!response.ok) {
+    return null
+  }
+
+  const data = await response.json()
+  if (!data.ok) {
+    return null
+  }
+
+  return data.channel?.id || null
+}
+
+export async function verifySlackRequest(request: Request, rawBody: string): Promise<boolean> {
+  const signingSecret = process.env.SLACK_SIGNING_SECRET
+
+  if (!signingSecret) {
+    return true
+  }
+
+  const timestamp = request.headers.get('x-slack-request-timestamp')
+  const signature = request.headers.get('x-slack-signature')
+
+  if (!timestamp || !signature) {
+    return false
+  }
+
+  const fiveMinutesAgo = Math.floor(Date.now() / 1000) - 60 * 5
+  if (Number(timestamp) < fiveMinutesAgo) {
+    return false
+  }
+
+  const baseString = `v0:${timestamp}:${rawBody}`
+  const digest = createHmac('sha256', signingSecret).update(baseString).digest('hex')
+  const computed = `v0=${digest}`
+
+  try {
+    return timingSafeEqual(Buffer.from(computed), Buffer.from(signature))
+  } catch {
+    return false
+  }
 }
 
 // =============================================================================
@@ -226,7 +345,7 @@ async function postViaBotToken(token: string, channel: string, message: SlackMes
 /**
  * Post a visitor check-in notification to Slack
  */
-export async function postCheckinNotification(data: CheckinNotificationData): Promise<void> {
+export async function postCheckinNotification(data: CheckinNotificationData): Promise<SlackPostResult | null> {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL
   const botToken = process.env.SLACK_BOT_TOKEN
   const channel = process.env.SLACK_CHANNEL || '#melbourne-office'
@@ -235,8 +354,18 @@ export async function postCheckinNotification(data: CheckinNotificationData): Pr
 
   if (webhookUrl) {
     await postViaWebhook(webhookUrl, message)
+    return { ok: true }
   } else if (botToken) {
-    await postViaBotToken(botToken, channel, message)
+    const result = await postViaBotToken(botToken, channel, message)
+
+    if (data.host?.slack_user_id) {
+      const dmChannel = await openDirectMessageChannel(botToken, data.host.slack_user_id)
+      if (dmChannel) {
+        await postViaBotToken(botToken, dmChannel, message)
+      }
+    }
+
+    return result
   } else {
     throw new Error('No Slack configuration found. Set SLACK_WEBHOOK_URL or SLACK_BOT_TOKEN')
   }

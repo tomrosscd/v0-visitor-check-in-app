@@ -28,6 +28,13 @@ export const PublicEmployeeSchema = EmployeeSchema.pick({
   team: true,
   email: true,
   host_slug: true,
+}).extend({
+  phone: z.string().optional().nullable(),
+  avatar_url: z.string().url().optional().nullable().or(z.literal('').transform(() => null)),
+  parking_instructions: z.string().optional().nullable(),
+  arrival_instructions: z.string().optional().nullable(),
+  calendar_snippet: z.string().optional().nullable(),
+  office_name: z.string().optional().nullable(),
 })
 
 export type PublicEmployee = z.infer<typeof PublicEmployeeSchema>
@@ -69,6 +76,10 @@ export const CheckinResponseSchema = z.object({
   message: z.string(),
   hostResolved: z.boolean(),
   timestamp: z.string(),
+  visitId: z.string().optional(),
+  hostName: z.string().nullable().optional(),
+  hostMessage: z.string().nullable().optional(),
+  status: z.string().optional(),
 })
 
 export type CheckinResponse = z.infer<typeof CheckinResponseSchema>
